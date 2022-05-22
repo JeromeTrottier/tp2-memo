@@ -3,19 +3,35 @@ import './Taches.scss';
 import * as tacheModele from '../code/tache-modele';
 import { useState, useEffect } from 'react';
 
-export default function Taches({etatTaches, utilisateur}) {
+export default function Taches({etatTaches, utilisateur, etatFiltreTaches}) {
   const uid = utilisateur.uid;
   const [taches, setTaches] = etatTaches;
+  const [filtreTaches, setFiltreTaches] = etatFiltreTaches;
   const [tri, setTri] = useState(['date', true]);
 
   /**
    * On cherche les tâches une seule fois après l'affichage du composant
    */
-  useEffect(() => 
-    tacheModele.lireTout(uid, tri).then(
-      taches => setTaches(taches)
-    )
-  , [setTaches, uid, tri]);
+  useEffect(() => {
+    switch (filtreTaches) {
+      case 'toutes':
+        tacheModele.lireTout(uid, tri).then(
+          taches => setTaches(taches)
+        );
+        break;
+      case 'completees':
+        tacheModele.lireTachesCompletees(uid, tri).then(
+          taches => setTaches(taches)
+        );
+        break;
+      case 'actives':
+        tacheModele.lireTachesActives(uid, tri).then(
+          taches => setTaches(taches)
+        );
+        break;
+    }
+  }
+  , [filtreTaches, setTaches, uid, tri]);
 
   /**
    * Gérer le formulaire d'ajout de nouvelle tâche en appelant la méthode 
@@ -35,12 +51,13 @@ export default function Taches({etatTaches, utilisateur}) {
       // Bonne idée : vider le formulaire pour la prochaine tâche
       e.target.reset();
       // Insérer la tâche dans Firestore
+      
       tacheModele.creer(uid, {texte: texte, completee: false}).then(
         // Actualiser l'état des taches en remplaçant le tableau des taches par 
         // une copie du tableau auquel on joint la tâche qu'on vient d'ajouter 
         // dans Firestore (et qui est retournée par la fonction creer()).
         tache => setTaches([tache, ...taches])
-      );
+      ).then(() => setFiltreTaches('toutes'));
     }
   }
 

@@ -1,6 +1,8 @@
 import { bdFirestore, collUtil, collTaches } from './init';
-import { query, orderBy, collection, doc, getDoc, getDocs, addDoc, deleteDoc, 
-          updateDoc, Timestamp } from "firebase/firestore"; 
+import {
+  query, orderBy, collection, doc, getDoc, getDocs, addDoc, deleteDoc,
+  updateDoc, Timestamp, where
+} from "firebase/firestore";
 
 /**
  * Créer une nouvelle tâche pour l'utilisateur connecté
@@ -15,7 +17,7 @@ export async function creer(uid, tache) {
   let collRef = collection(bdFirestore, collUtil, uid, collTaches);
   let docRef = await addDoc(collRef, tache);
   let nouveauDoc = await getDoc(docRef);
-  return {id: nouveauDoc.id, ...nouveauDoc.data()};
+  return { id: nouveauDoc.id, ...nouveauDoc.data() };
 }
 
 /**
@@ -25,10 +27,38 @@ export async function creer(uid, tache) {
  * @returns {Promise<any[]>} Promesse avec le tableau des tâches
  */
 export async function lireTout(uid, tri) {
-  return getDocs(query(collection(bdFirestore, collUtil, uid, collTaches), 
-    orderBy(tri[0], tri[1]?'desc':'asc'))).
+  return getDocs(query(collection(bdFirestore, collUtil, uid, collTaches),
+    orderBy("completee", "asc"), orderBy(tri[0], tri[1] ? 'desc' : 'asc'))).
     then(
-      qs  => qs.docs.map(doc => ({id: doc.id, ...doc.data()})) 
+      qs => qs.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    );
+}
+
+/**
+ * Obtenir toutes les tâches d'un utilisateur
+ * @param {string} uid identifiant d'utilisateur Firebase 
+ * @param {Array} tri tableau contenant le champ de tri et le sens du tri  
+ * @returns {Promise<any[]>} Promesse avec le tableau des tâches
+ */
+export async function lireTachesCompletees(uid, tri) {
+  return getDocs(query(collection(bdFirestore, collUtil, uid, collTaches),
+    where("completee", ">=", true), orderBy("completee", "asc"), orderBy(tri[0], tri[1] ? 'desc' : 'asc'))).
+    then(
+      qs => qs.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    );
+}
+
+/**
+ * Obtenir toutes les tâches d'un utilisateur
+ * @param {string} uid identifiant d'utilisateur Firebase 
+ * @param {Array} tri tableau contenant le champ de tri et le sens du tri  
+ * @returns {Promise<any[]>} Promesse avec le tableau des tâches
+ */
+export async function lireTachesActives(uid, tri) {
+  return getDocs(query(collection(bdFirestore, collUtil, uid, collTaches),
+    where("completee", "<=", false), orderBy("completee", "asc"), orderBy(tri[0], tri[1] ? 'desc' : 'asc'))).
+    then(
+      qs => qs.docs.map(doc => ({ id: doc.id, ...doc.data() }))
     );
 }
 
@@ -38,9 +68,19 @@ export async function lireTout(uid, tri) {
  * @param {string} idTache identifiant de la tâche à supprimer
  * @returns {Promise<null>} Promesse sans paramètre
  */
- export async function supprimer(uid, idTache) {
+export async function supprimer(uid, idTache) {
   let docRef = doc(bdFirestore, collUtil, uid, collTaches, idTache);
   return await deleteDoc(docRef);
+}
+
+export async function supprimerToutCompletee(uid) {
+  // const documentsCompletes
+  let collRef = collection(bdFirestore, collUtil, uid, collTaches);
+  const q = await query(collRef, where("completee", "==", true));
+  const querySnapshot = await getDocs(q);
+  return await querySnapshot.forEach((tache) => {
+    supprimer(uid, tache.id);
+  });
 }
 
 /**
@@ -50,7 +90,7 @@ export async function lireTout(uid, tri) {
  * @param {bool} etatCompletee etat actuel de la tâche à faire basculer
  * @returns {Promise<null>} Promesse sans paramètre
  */
- export async function basculer(uid, idTache, etatCompletee) {
+export async function basculer(uid, idTache, etatCompletee) {
   let docRef = doc(bdFirestore, collUtil, uid, collTaches, idTache);
-  return await updateDoc(docRef, {completee: !etatCompletee});
+  return await updateDoc(docRef, { completee: !etatCompletee });
 }
