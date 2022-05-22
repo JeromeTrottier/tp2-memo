@@ -1,4 +1,4 @@
-# TP 2 : Application Memo / Code de départ
+# TP 2 : Application Memo
 
 Travail pratique de React fait dans le contexte du cours Interfaces Web Réactives et animées du collège de Maisonneuve.
 
